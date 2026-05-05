@@ -1,0 +1,9 @@
+name: uplift_tlearner
+track: uplift
+estimator: t_learner
+base_model: lightgbm
+params:
+  learning_rate: 0.05
+  num_leaves: 63
+  n_estimators: 600
+  min_data_in_leaf: 200

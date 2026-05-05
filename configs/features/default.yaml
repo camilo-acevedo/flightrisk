@@ -1,0 +1,6 @@
+name: default
+windows_days: [7, 30, 90]
+include_rolling_diversity: true
+include_session_stats: true
+include_payment_dynamics: true
+drop_low_variance_threshold: 0.0

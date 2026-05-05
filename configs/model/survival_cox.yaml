@@ -1,0 +1,7 @@
+name: survival_cox
+track: survival
+estimator: cox
+params:
+  penalizer: 0.01
+  l1_ratio: 0.0
+horizons_days: [30, 60, 90]

@@ -1,0 +1,16 @@
+name: default
+risk:
+  metrics: [auc, pr_auc, brier, ece, lift_decile]
+  n_calibration_bins: 20
+survival:
+  metrics: [c_index, time_dependent_auc, integrated_brier]
+  evaluation_horizons_days: [30, 60, 90]
+uplift:
+  metrics: [qini, auuc, uplift_at_k]
+  k_percentiles: [10, 20, 30]
+simulator:
+  budgets: [100000, 250000, 500000]
+  cost_per_treated: 5.0
+  treatment_lift_calibration: rct
+  bootstrap_iters: 1000
+  alpha: 0.05

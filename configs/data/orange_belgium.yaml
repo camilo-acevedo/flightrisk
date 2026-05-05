@@ -1,0 +1,6 @@
+name: orange_belgium
+source: huggingface
+hf_dataset: criteo/orange-belgium-uplift
+treatment_col: treatment
+outcome_col: outcome
+n_features: 178

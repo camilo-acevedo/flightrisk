@@ -1,0 +1,11 @@
+name: kkbox
+source: kaggle
+kaggle_competition: kkbox-churn-prediction-challenge
+files:
+  - train.csv
+  - sample_submission_zero.csv
+  - members_v3.csv
+  - transactions.csv
+  - user_logs.csv
+horizon_days: 30
+cutoff_date: "2017-02-28"

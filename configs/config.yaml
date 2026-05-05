@@ -1,0 +1,28 @@
+defaults:
+  - data: kkbox
+  - features: default
+  - model: risk_lgbm
+  - eval: default
+  - _self_
+
+project:
+  name: flightrisk
+  seed: 1337
+
+paths:
+  data_raw: data/raw
+  data_interim: data/interim
+  data_features: data/features
+  reports: reports
+
+mlflow:
+  experiment: flightrisk
+  registry_stage: Production
+
+hydra:
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  job:
+    chdir: false
