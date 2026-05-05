@@ -138,6 +138,13 @@ $env:FLIGHTRISK_MLFLOW_TRACKING_URI = "http://your-mlflow-server:5000"
 
 ## Quickstart
 
+> **Tip:** the fastest way to see everything in action is the [walkthrough notebook](notebooks/00_walkthrough.ipynb). It generates synthetic data, builds features, trains all three tracks, runs the simulator, and launches the API + Streamlit demo — annotated cell-by-cell. From a fresh clone:
+>
+> ```powershell
+> pip install -e ".[dev]" jupyterlab
+> jupyter lab notebooks/00_walkthrough.ipynb
+> ```
+
 ```powershell
 # 1. Pull raw datasets via DVC, falling back to Kaggle for KKBox if DVC is absent
 flightrisk data pull
