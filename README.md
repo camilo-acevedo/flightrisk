@@ -333,7 +333,7 @@ Environment-driven settings live in [`flightrisk/config.py`](flightrisk/config.p
 | `FLIGHTRISK_RANDOM_SEED` | Global seed. | `1337` |
 | `FLIGHTRISK_KAGGLE_USERNAME` / `_KEY` | Credentials for the Kaggle ingestion fallback. | — |
 
-Per-experiment YAML configs (datasets, features, model params, evaluation) live under [`configs/`](configs/) and are intentionally schema-shallow so they remain readable in PRs.
+Per-experiment YAML configs (datasets, features, model params, evaluation) live under [`configs/`](configs/) as **reference defaults**, not Hydra-driven runtime configs — the click CLI exposes the same parameters as flags. See [`configs/README.md`](configs/README.md) for how to consume them. Wiring Hydra for multi-run sweeps is an option for the next iteration.
 
 ---
 

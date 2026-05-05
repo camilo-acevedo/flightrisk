@@ -16,7 +16,7 @@ class ProjectPaths:
     :param data_features: Final feature parquet partitions.
     :param mlruns: MLflow tracking store.
     :param reports: Generated figures and HTML reports.
-    :param configs: Hydra configuration tree.
+    :param configs: Reference YAML configuration tree (see configs/README.md).
     """
 
     root: Path

@@ -1,10 +1,3 @@
-defaults:
-  - data: kkbox
-  - features: default
-  - model: risk_lgbm
-  - eval: default
-  - _self_
-
 project:
   name: flightrisk
   seed: 1337
@@ -19,10 +12,17 @@ mlflow:
   experiment: flightrisk
   registry_stage: Production
 
-hydra:
-  run:
-    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
-  sweep:
-    dir: multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
-  job:
-    chdir: false
+datasets:
+  kkbox: configs/data/kkbox.yaml
+  orange_belgium: configs/data/orange_belgium.yaml
+
+features:
+  default: configs/features/default.yaml
+
+models:
+  risk_lgbm: configs/model/risk_lgbm.yaml
+  survival_cox: configs/model/survival_cox.yaml
+  uplift_tlearner: configs/model/uplift_tlearner.yaml
+
+eval:
+  default: configs/eval/default.yaml
