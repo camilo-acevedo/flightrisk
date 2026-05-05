@@ -7,6 +7,7 @@
 [![CI](https://github.com/camilo-acevedo/flightrisk/actions/workflows/ci.yml/badge.svg)](https://github.com/camilo-acevedo/flightrisk/actions/workflows/ci.yml)
 [![python](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/)
 [![tests](https://img.shields.io/badge/tests-76%2F76-brightgreen.svg)](#testing)
+[![docker](https://img.shields.io/badge/docker-ready-2496ED.svg?logo=docker&logoColor=white)](#container-deployment)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![code style](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![mlflow](https://img.shields.io/badge/tracking-MLflow-0194E2.svg)](https://mlflow.org/)
@@ -297,6 +298,25 @@ Four tabs:
 ```powershell
 streamlit run flightrisk/serving/streamlit_app.py
 ```
+
+---
+
+## Container deployment
+
+A multi-stage [`Dockerfile`](Dockerfile) and a [`docker-compose.yml`](docker-compose.yml) ship with the repo. The image runs as an unprivileged user, exposes the FastAPI scoring service on port 8000, and includes a `HEALTHCHECK` against `/health`.
+
+```powershell
+# Build and run the API only
+docker build -t flightrisk:latest .
+docker run --rm -p 8000:8000 flightrisk:latest
+
+# Or bring up API + Streamlit demo with shared mlruns/reports
+docker compose up --build
+# API:        http://localhost:8000/docs
+# Streamlit:  http://localhost:8501
+```
+
+The compose file mounts `./reports`, `./mlruns`, and `./data/features` read-only into the demo container so it can pick up freshly-trained artifacts without rebuilding the image. Each push to `main` runs a CI job that builds the image and curls `/health` to confirm it boots.
 
 ---
 
