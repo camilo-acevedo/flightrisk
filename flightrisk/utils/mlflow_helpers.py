@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
-from typing import Iterator, Mapping
 
 import mlflow
 

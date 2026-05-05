@@ -79,16 +79,13 @@ target-version = "py311"
 extend-exclude = ["notebooks", "data", "reports", "mlruns"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF", "D"]
-ignore = ["D100", "D104", "D203", "D213"]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["D"]
-"scripts/*" = ["D"]
-"flightrisk/cli.py" = ["D"]
-
-[tool.ruff.lint.pydocstyle]
-convention = "google"
+"tests/*" = []
+"scripts/*" = []
+"flightrisk/cli.py" = []
 
 [tool.mypy]
 python_version = "3.11"

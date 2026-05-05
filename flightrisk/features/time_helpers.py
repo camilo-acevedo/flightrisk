@@ -27,9 +27,7 @@ def days_since(reference: pd.Series, anchor: pd.Timestamp) -> pd.Series:
     return delta.dt.days.astype("Float64")
 
 
-def restrict_before(
-    frame: pd.DataFrame, *, date_col: str, cutoff: pd.Timestamp
-) -> pd.DataFrame:
+def restrict_before(frame: pd.DataFrame, *, date_col: str, cutoff: pd.Timestamp) -> pd.DataFrame:
     """Drop rows whose ``date_col`` is on or after ``cutoff``.
 
     Used to enforce no-future-leakage at feature build time.

@@ -40,7 +40,7 @@ class CausalForestUpliftModel:
 
     def fit(
         self, X: pd.DataFrame, treatment: np.ndarray, outcome: np.ndarray
-    ) -> "CausalForestUpliftModel":
+    ) -> CausalForestUpliftModel:
         """Fit the causal forest with default outcome and treatment nuisance models.
 
         :param X: Feature frame.

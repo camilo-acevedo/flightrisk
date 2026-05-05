@@ -101,7 +101,7 @@ def score(request: BatchScoreRequest) -> BatchScoreResponse:
     scores, meaning = _score(loaded, request)
     items = [
         ScoreResponseItem(customer_id=req.customer_id, score=float(score_value))
-        for req, score_value in zip(request.items, scores)
+        for req, score_value in zip(request.items, scores, strict=True)
     ]
     return BatchScoreResponse(
         track=request.track,

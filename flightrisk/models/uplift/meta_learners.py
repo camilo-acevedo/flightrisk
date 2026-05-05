@@ -59,9 +59,7 @@ class TLearner:
         self._model_control: lgb.LGBMClassifier | None = None
         self._feature_names: list[str] | None = None
 
-    def fit(
-        self, X: pd.DataFrame, treatment: np.ndarray, outcome: np.ndarray
-    ) -> "TLearner":
+    def fit(self, X: pd.DataFrame, treatment: np.ndarray, outcome: np.ndarray) -> TLearner:
         """Fit the two outcome models.
 
         :param X: Feature frame.
@@ -93,7 +91,11 @@ class TLearner:
         :returns: 1-D array of uplift estimates.
         :raises RuntimeError: If the model has not been fitted.
         """
-        if self._model_treated is None or self._model_control is None or self._feature_names is None:
+        if (
+            self._model_treated is None
+            or self._model_control is None
+            or self._feature_names is None
+        ):
             raise RuntimeError("TLearner has not been fitted")
         x = X[self._feature_names]
         p_treated = self._model_treated.predict_proba(x)[:, 1]
@@ -136,9 +138,7 @@ class XLearner:
             verbose=self.params.verbose,
         )
 
-    def fit(
-        self, X: pd.DataFrame, treatment: np.ndarray, outcome: np.ndarray
-    ) -> "XLearner":
+    def fit(self, X: pd.DataFrame, treatment: np.ndarray, outcome: np.ndarray) -> XLearner:
         """Fit the X-learner stack.
 
         :param X: Feature frame.
@@ -162,12 +162,14 @@ class XLearner:
             X.loc[control_mask, self._feature_names], outcome[control_mask]
         )
 
-        d_treated = outcome[treated_mask] - self._model_control.predict_proba(
-            X.loc[treated_mask, self._feature_names]
-        )[:, 1]
-        d_control = self._model_treated.predict_proba(
-            X.loc[control_mask, self._feature_names]
-        )[:, 1] - outcome[control_mask]
+        d_treated = (
+            outcome[treated_mask]
+            - self._model_control.predict_proba(X.loc[treated_mask, self._feature_names])[:, 1]
+        )
+        d_control = (
+            self._model_treated.predict_proba(X.loc[control_mask, self._feature_names])[:, 1]
+            - outcome[control_mask]
+        )
 
         self._tau_treated = self._make_regressor().fit(
             X.loc[treated_mask, self._feature_names], d_treated
@@ -175,9 +177,7 @@ class XLearner:
         self._tau_control = self._make_regressor().fit(
             X.loc[control_mask, self._feature_names], d_control
         )
-        self._propensity = _make_classifier(self.params).fit(
-            X[self._feature_names], treatment
-        )
+        self._propensity = _make_classifier(self.params).fit(X[self._feature_names], treatment)
         return self
 
     def predict_uplift(self, X: pd.DataFrame) -> np.ndarray:
@@ -213,9 +213,7 @@ class DRLearner:
         self._tau: lgb.LGBMRegressor | None = None
         self._feature_names: list[str] | None = None
 
-    def fit(
-        self, X: pd.DataFrame, treatment: np.ndarray, outcome: np.ndarray
-    ) -> "DRLearner":
+    def fit(self, X: pd.DataFrame, treatment: np.ndarray, outcome: np.ndarray) -> DRLearner:
         """Fit the DR-learner stack.
 
         :param X: Feature frame.
@@ -246,7 +244,12 @@ class DRLearner:
         mu1 = self._model_treated.predict_proba(x)[:, 1]
         mu0 = self._model_control.predict_proba(x)[:, 1]
         e = np.clip(self._propensity.predict_proba(x)[:, 1], 0.05, 0.95)
-        pseudo = mu1 - mu0 + treatment * (outcome - mu1) / e - (1 - treatment) * (outcome - mu0) / (1 - e)
+        pseudo = (
+            mu1
+            - mu0
+            + treatment * (outcome - mu1) / e
+            - (1 - treatment) * (outcome - mu0) / (1 - e)
+        )
 
         self._tau = lgb.LGBMRegressor(
             learning_rate=self.params.learning_rate,

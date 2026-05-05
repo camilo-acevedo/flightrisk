@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Iterable
+from collections.abc import Iterable
 
 import joblib
 import numpy as np
 import pandas as pd
 import streamlit as st
 
-from flightrisk.eval.uplift_metrics import qini_curve
 from flightrisk.utils.paths import get_paths
 
 
@@ -75,7 +73,9 @@ def _load_survival_matrix(run_id: str) -> tuple[np.ndarray, np.ndarray] | None:
     return matrix, horizons
 
 
-def _shap_explanation(model: object, sample: pd.DataFrame, feature_names: Iterable[str]) -> pd.DataFrame:
+def _shap_explanation(
+    model: object, sample: pd.DataFrame, feature_names: Iterable[str]
+) -> pd.DataFrame:
     """Compute SHAP values for a small sample if SHAP is available.
 
     :param model: Calibrated risk model wrapping a tree-based base.
@@ -93,11 +93,17 @@ def _shap_explanation(model: object, sample: pd.DataFrame, feature_names: Iterab
         if isinstance(values, list):
             values = values[1] if len(values) == 2 else values[-1]
         importance = np.abs(values).mean(axis=0)
-        return pd.DataFrame({"feature": list(feature_names), "mean_abs_shap": importance}).sort_values(
-            "mean_abs_shap", ascending=False
-        )
+        return pd.DataFrame(
+            {"feature": list(feature_names), "mean_abs_shap": importance}
+        ).sort_values("mean_abs_shap", ascending=False)
     except Exception as exc:
-        return pd.DataFrame({"feature": list(feature_names), "mean_abs_shap": [np.nan] * len(list(feature_names)), "error": [str(exc)] * len(list(feature_names))})
+        return pd.DataFrame(
+            {
+                "feature": list(feature_names),
+                "mean_abs_shap": [np.nan] * len(list(feature_names)),
+                "error": [str(exc)] * len(list(feature_names)),
+            }
+        )
 
 
 def _render_risk_tab() -> None:

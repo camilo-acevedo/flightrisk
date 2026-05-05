@@ -3,13 +3,13 @@ from __future__ import annotations
 import logging
 import os
 import sys
-from functools import lru_cache
+from functools import cache
 
 _FORMAT = "%(asctime)s | %(levelname)-7s | %(name)s | %(message)s"
 _DATEFMT = "%Y-%m-%dT%H:%M:%S"
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_logger(name: str) -> logging.Logger:
     """Return a configured logger named ``name``.
 

@@ -36,7 +36,7 @@ class CoxSurvivalModel:
         X: pd.DataFrame,
         durations: np.ndarray,
         events: np.ndarray,
-    ) -> "CoxSurvivalModel":
+    ) -> CoxSurvivalModel:
         """Fit the Cox model.
 
         :param X: Numeric feature frame; non-numeric columns must be encoded

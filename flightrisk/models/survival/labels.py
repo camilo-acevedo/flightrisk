@@ -89,6 +89,6 @@ def to_structured_array(durations: np.ndarray, events: np.ndarray) -> np.ndarray
     :returns: Structured numpy array with fields ``event`` (bool) and ``time``.
     """
     return np.array(
-        list(zip(events.astype(bool), durations.astype(float))),
+        list(zip(events.astype(bool), durations.astype(float), strict=True)),
         dtype=[("event", "?"), ("time", "<f8")],
     )
