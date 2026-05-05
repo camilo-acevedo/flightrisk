@@ -85,13 +85,42 @@ def features_group() -> None:
     """Feature subcommands."""
 
 
-@features_group.command("build", help="Build the feature matrix.")
-def features_build() -> None:
-    """Build the feature matrix.
+@features_group.command("build", help="Build feature matrices for KKBox and Orange Belgium.")
+@click.option("--cutoff", default="2017-02-28", show_default=True, help="KKBox build cutoff date.")
+@click.option("--sample-frac", type=float, default=None, help="KKBox subsample fraction.")
+@click.option(
+    "--skip-orange/--with-orange",
+    default=False,
+    help="Skip the Orange Belgium pipeline if its raw file is missing.",
+)
+def features_build(cutoff: str, sample_frac: float | None, skip_orange: bool) -> None:
+    """Build and persist feature bundles for both datasets.
 
-    Implementation lands in step 2 of the build order.
+    :param cutoff: KKBox build cutoff (any pandas-parsable date string).
+    :param sample_frac: Optional subsample fraction for KKBox.
+    :param skip_orange: When set, do not attempt to load Orange Belgium.
     """
-    _log.info("features build is not yet implemented; coming in step 2.")
+    from flightrisk.data.loaders import load_kkbox, load_orange_belgium
+    from flightrisk.features.pipeline import (
+        build_kkbox_bundle,
+        build_orange_bundle,
+        write_kkbox_bundle,
+        write_orange_bundle,
+    )
+
+    kk = load_kkbox(sample_frac=sample_frac)
+    bundle = build_kkbox_bundle(kk, cutoff=cutoff)
+    write_kkbox_bundle(bundle)
+
+    if skip_orange:
+        _log.info("skipping orange-belgium pipeline as requested")
+        return
+    try:
+        orange = load_orange_belgium()
+    except FileNotFoundError as exc:
+        _log.warning("orange-belgium not available: %s", exc)
+        return
+    write_orange_bundle(build_orange_bundle(orange))
 
 
 @main.group("train", help="Model training tracks.")
