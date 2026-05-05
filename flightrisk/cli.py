@@ -141,25 +141,31 @@ def train_group() -> None:
     default="isotonic",
     show_default=True,
 )
-@click.option("--train-cutoff", default="2017-01-31", show_default=True)
-@click.option("--val-cutoff", default="2017-02-15", show_default=True)
+@click.option("--train-frac", type=float, default=0.7, show_default=True)
+@click.option("--val-frac", type=float, default=0.15, show_default=True)
 @click.option("--seed", type=int, default=1337, show_default=True)
 def train_risk(
-    estimator: str, calibration: str, train_cutoff: str, val_cutoff: str, seed: int
+    estimator: str, calibration: str, train_frac: float, val_frac: float, seed: int
 ) -> None:
     """Train Track A and log artifacts to MLflow.
 
+    The split is index-based with a fixed seed: the first ``train_frac`` of a
+    seeded permutation goes to train, the next ``val_frac`` to validation, and
+    the rest to test. KKBox features collapse to one row per ``msno`` so a
+    strict time-ordered split is not meaningful at this layer; honest dating
+    requires re-deriving features at multiple cutoffs (slated for the roadmap).
+
     :param estimator: Either ``lightgbm`` or ``xgboost``.
     :param calibration: ``isotonic``, ``platt``, or ``none`` to skip.
-    :param train_cutoff: Last date kept in the train slice.
-    :param val_cutoff: Last date kept in the validation slice.
+    :param train_frac: Fraction of rows used for training.
+    :param val_frac: Fraction of rows used for validation.
     :param seed: Reproducibility seed.
     """
     import joblib
     import mlflow
+    import numpy as np
     import pandas as pd
 
-    from flightrisk.data.splits import temporal_split
     from flightrisk.models.risk.trainer import save_calibration_plot, train_risk_model
     from flightrisk.utils import seed_everything
     from flightrisk.utils.mlflow_helpers import configure_mlflow, start_run
@@ -170,19 +176,14 @@ def train_risk(
     base = paths.data_features / "kkbox"
     features = pd.read_parquet(base / "features.parquet")
     labels = pd.read_parquet(base / "labels.parquet")
-    cutoff = pd.Timestamp((base / "cutoff.txt").read_text().strip())
 
-    pseudo_dates = pd.Series(
-        pd.to_datetime(features["msno"].astype(str), errors="coerce").fillna(cutoff)
-    )
-    if pseudo_dates.is_monotonic_increasing is False:
-        pseudo_dates = pd.Series(pd.date_range(end=cutoff, periods=len(features), freq="D"))
-
-    split = temporal_split(
-        pseudo_dates,
-        train_cutoff=train_cutoff,
-        val_cutoff=val_cutoff,
-    )
+    n = len(features)
+    perm = np.random.default_rng(seed).permutation(n)
+    train_cut = int(n * train_frac)
+    val_cut = int(n * (train_frac + val_frac))
+    train_idx = perm[:train_cut]
+    val_idx = perm[train_cut:val_cut]
+    test_idx = perm[val_cut:]
 
     calibration_arg = None if calibration == "none" else calibration
     configure_mlflow()
@@ -192,17 +193,17 @@ def train_risk(
                 "estimator": estimator,
                 "calibration": calibration,
                 "seed": seed,
-                "train_cutoff": train_cutoff,
-                "val_cutoff": val_cutoff,
+                "train_frac": train_frac,
+                "val_frac": val_frac,
                 "n_features": features.shape[1] - 1,
             }
         )
         result = train_risk_model(
             features,
             labels["is_churn"].values,
-            train_idx=split.train_idx,
-            val_idx=split.val_idx,
-            test_idx=split.test_idx,
+            train_idx=train_idx,
+            val_idx=val_idx,
+            test_idx=test_idx,
             estimator=estimator,
             calibration=calibration_arg,
         )
@@ -274,7 +275,11 @@ def train_survival(estimator: str, horizon_days: int, train_frac: float, seed: i
     train_idx = perm[:cut]
     test_idx = perm[cut:]
 
-    horizons = (max(horizon_days // 3, 7), max(2 * horizon_days // 3, 14), horizon_days)
+    horizons = (
+        max(horizon_days // 4, 7),
+        max(horizon_days // 2, 14),
+        max(3 * horizon_days // 4, 21),
+    )
 
     configure_mlflow()
     with start_run(run_name=f"survival-{estimator}") as run:
@@ -428,10 +433,13 @@ def simulate(
     parsed_budgets = tuple(float(b.strip()) for b in budgets.split(",") if b.strip())
 
     rng = np.random.default_rng(seed)
-    risk = rng.uniform(0, 1, size=n_customers)
-    uplift = rng.uniform(0, 0.3, size=n_customers) + 0.5 * (risk > 0.7)
-    base = 1.0 - risk
-    lift = np.clip(0.05 + 0.4 * (risk > 0.7) * (uplift > 0.4), 0.0, 1.0)
+    segment = rng.choice(3, size=n_customers, p=[0.2, 0.4, 0.4])
+    base_p_churn = np.where(segment == 0, 0.85, np.where(segment == 1, 0.35, 0.05))
+    true_lift = np.where(segment == 1, 0.30, 0.0)
+    risk = np.clip(base_p_churn + rng.normal(0, 0.05, n_customers), 0.0, 1.0)
+    uplift = true_lift + rng.normal(0, 0.03, n_customers)
+    base = 1.0 - base_p_churn
+    lift = true_lift
 
     config = SimulatorConfig(
         cost_per_treated=cost_per_treated,

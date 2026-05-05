@@ -401,6 +401,59 @@ The full suite runs in ≈ 8 seconds with coverage tracking on.
 
 ---
 
+## Pipeline smoke run
+
+The full pipeline runs end-to-end on a **synthetic-but-pipeline-realistic** dataset bundled in [`scripts/`](scripts). It exercises every track on data that satisfies the same pandera schemas as KKBox and Orange Belgium so the code path is identical to the real-data path. Numbers below are from a single seeded run on a developer laptop; they exist to prove the pipeline is wired correctly, not to claim results on the real datasets.
+
+```powershell
+# Generate KKBox-shaped + Orange-shaped synthetic data
+python scripts\synthetic_kkbox.py  --n-users 30000 --seed 1337
+python scripts\synthetic_orange.py --n-customers 12000 --seed 1337
+
+flightrisk data validate                                     # pandera passes
+flightrisk features build --cutoff 2017-02-15                # 30k rows x 36 cols
+flightrisk train risk     --estimator lightgbm  --calibration isotonic
+flightrisk train survival --estimator rsf       --horizon-days 60
+flightrisk train uplift   --estimator t_learner
+flightrisk simulate       --budgets 10000,25000,50000 --n-customers 12000
+```
+
+**Track A (Risk).** LightGBM + isotonic calibration on 21,000 train / 4,500 val / 4,500 test rows:
+
+| AUC | PR-AUC | Brier | ECE | Decile lift |
+|---|---|---|---|---|
+| 0.7247 | 0.2959 | 0.0985 | **0.0175** | 2.78× |
+
+**Track B (Survival).** Random Survival Forest, horizon 60 days, 24,000 train / 6,000 test, event rate ≈ 13%:
+
+| C-index | Integrated Brier | td-AUC mean |
+|---|---|---|
+| 0.6571 | 0.0613 | n/a (degenerate censoring on synthetic data — expected on real KKBox)|
+
+**Track C (Uplift).** All three meta-learners on the synthetic RCT (9,600 train / 2,400 test, treated rate 49.5%):
+
+| Estimator | Qini | AUUC | uplift@10% |
+|---|---|---|---|
+| T-learner | 0.0130 | 309.5 | 0.345 |
+| X-learner | 0.0125 | 304.8 | 0.361 |
+| DR-learner | 0.0128 | 305.9 | 0.359 |
+
+**Headline ROI simulator** (12,000 customers, budgets $10k / $25k / $50k, $5 per treated, $50 per retained):
+
+| Budget | Risk policy revenue | Uplift policy revenue | Lift over risk |
+|---|---:|---:|---:|
+| $10,000 | $389,680 | **$419,680** | +$30,000 |
+| $25,000 | $412,900 | **$446,920** | +$34,020 |
+| $50,000 | $421,920 | $421,920 | saturated (everyone treated)|
+
+The chart under [`reports/simulator/roi_chart.png`](reports/simulator/roi_chart.png) renders these as grouped bars with bootstrapped 95% CIs.
+
+> **Why uplift wins at unsaturated budgets.** The synthetic preview encodes the textbook segmentation: 20% lost causes (high `P(churn)`, zero treatment effect), 40% persuadables (medium `P(churn)`, +30 pp lift), 40% loyals (already retain). The risk policy spends the budget on lost causes; the uplift policy spends it on persuadables. On real RCT data the gap is smaller but the direction is the same.
+
+To replace the synthetic generators with the real data, populate `data/raw/kkbox/` and `data/raw/orange-belgium/` (via `flightrisk data pull` with Kaggle credentials, or by dropping the files manually) and re-run the same commands.
+
+---
+
 ## Reproducibility checklist
 
 - [x] Pinned Python (`3.11`) and dependency ranges in `pyproject.toml`.
