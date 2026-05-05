@@ -29,13 +29,18 @@ class SurvivalMetrics:
     def as_dict(self) -> Mapping[str, float]:
         """Return the metrics as a plain ``dict`` for MLflow logging.
 
-        :returns: Mapping from metric name to value.
+        ``NaN`` entries are dropped so MLflow's metric store accepts the call
+        when the IPCW estimator could not be computed (e.g. degenerate
+        censoring).
+
+        :returns: Mapping from metric name to finite value.
         """
-        return {
+        candidates = {
             "c_index": self.c_index,
             "time_dependent_auc_mean": self.time_dependent_auc_mean,
             "integrated_brier": self.integrated_brier,
         }
+        return {k: v for k, v in candidates.items() if not (v is None or v != v)}
 
 
 def survival_metrics(
@@ -65,14 +70,21 @@ def survival_metrics(
     c_index = float(
         concordance_index_censored(test_struct["event"], test_struct["time"], risk_scores)[0]
     )
-    auc_per_horizon, _ = cumulative_dynamic_auc(
-        train_struct, test_struct, risk_scores, times=horizons
-    )
-    brier = float(
-        integrated_brier_score(train_struct, test_struct, survival_at_horizons, times=horizons)
-    )
+    try:
+        auc_per_horizon, _ = cumulative_dynamic_auc(
+            train_struct, test_struct, risk_scores, times=horizons
+        )
+        td_auc = float(np.mean(auc_per_horizon))
+    except (ValueError, ZeroDivisionError):
+        td_auc = float("nan")
+    try:
+        brier = float(
+            integrated_brier_score(train_struct, test_struct, survival_at_horizons, times=horizons)
+        )
+    except (ValueError, ZeroDivisionError):
+        brier = float("nan")
     return SurvivalMetrics(
         c_index=c_index,
-        time_dependent_auc_mean=float(np.mean(auc_per_horizon)),
+        time_dependent_auc_mean=td_auc,
         integrated_brier=brier,
     )

@@ -55,6 +55,25 @@ def _drop_id_columns(features: pd.DataFrame) -> pd.DataFrame:
     return features.drop(columns=drop)
 
 
+def _to_numeric(features: pd.DataFrame) -> pd.DataFrame:
+    """Coerce features to ``float64`` and one-hot encode categorical columns.
+
+    LightGBM and XGBoost both reject ``object``-dtype columns; one-hot
+    encoding with the first category as baseline keeps the matrix dense and
+    numeric.
+
+    :param features: Source feature frame.
+    :returns: Numeric, dense feature frame.
+    """
+    df = features.copy()
+    cat_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
+    if cat_cols:
+        df = pd.get_dummies(df, columns=cat_cols, drop_first=True, dummy_na=False)
+    df = df.apply(pd.to_numeric, errors="coerce")
+    df = df.dropna(axis=1, how="all")
+    return df.astype("float64")
+
+
 def train_risk_model(
     features: pd.DataFrame,
     labels: pd.Series | np.ndarray,
@@ -76,7 +95,7 @@ def train_risk_model(
     :param calibration: ``"isotonic"``, ``"platt"``, or ``None`` to skip.
     :returns: A :class:`RiskTrainingResult` with the fitted model and metrics.
     """
-    X_full = _drop_id_columns(features).reset_index(drop=True)
+    X_full = _to_numeric(_drop_id_columns(features)).reset_index(drop=True)
     y_full = np.asarray(labels).astype(int).ravel()
 
     X_train, y_train = X_full.iloc[train_idx], y_full[train_idx]
