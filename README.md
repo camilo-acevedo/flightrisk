@@ -260,11 +260,22 @@ FastAPI service at `flightrisk.serving.api`. Models are loaded lazily by a threa
 | `GET` | `/health` | Liveness check; returns the run id loaded for each track. |
 | `POST` | `/score` | Batch scoring; dispatches by `track` to the right model interface. |
 
+### Authentication and rate limiting
+
+Set ``FLIGHTRISK_API_KEY`` (single key) or ``FLIGHTRISK_API_KEYS`` (comma-separated) in the environment to require an `X-API-Key` header on `/score`. When neither variable is set, the endpoint stays open for local development. Per-IP rate limiting is enforced via [slowapi](https://github.com/laurentS/slowapi); the default is **60 requests/minute** and is overridable with ``FLIGHTRISK_RATE_LIMIT`` (e.g. ``"600/minute"`` or ``"5/second"``). ``/health`` is exempt from both auth and the rate limiter so probes never lock you out.
+
+```powershell
+$env:FLIGHTRISK_API_KEY     = "rotate-me-please"
+$env:FLIGHTRISK_RATE_LIMIT  = "120/minute"
+python -m uvicorn flightrisk.serving.api:app --port 8000
+```
+
 ### Request / response
 
 ```bash
 curl -X POST http://localhost:8000/score \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: rotate-me-please" \
   -d '{
     "track": "risk",
     "items": [
@@ -367,6 +378,8 @@ Environment-driven settings live in [`flightrisk/config.py`](flightrisk/config.p
 | `FLIGHTRISK_MLFLOW_EXPERIMENT` | Default experiment name. | `flightrisk` |
 | `FLIGHTRISK_RANDOM_SEED` | Global seed. | `1337` |
 | `FLIGHTRISK_KAGGLE_USERNAME` / `_KEY` | Credentials for the Kaggle ingestion fallback. | — |
+| `FLIGHTRISK_API_KEY` / `FLIGHTRISK_API_KEYS` | Required `X-API-Key` value(s) for the scoring API; unset = open. | unset |
+| `FLIGHTRISK_RATE_LIMIT` | slowapi limit string for `/score`. | `60/minute` |
 
 Per-experiment YAML configs (datasets, features, model params, evaluation) live under [`configs/`](configs/) as **reference defaults**, not Hydra-driven runtime configs — the click CLI exposes the same parameters as flags. See [`configs/README.md`](configs/README.md) for how to consume them. Wiring Hydra for multi-run sweeps is an option for the next iteration.
 
