@@ -219,10 +219,97 @@ def train_risk(
         _log.info("risk artifacts saved to %s", out_dir)
 
 
-@train_group.command("survival")
-def train_survival() -> None:
-    """Train Track B (survival). Lands in step 4."""
-    _log.info("train survival is not yet implemented; coming in step 4.")
+@train_group.command("survival", help="Train Track B (survival) on KKBox features.")
+@click.option(
+    "--estimator",
+    type=click.Choice(["cox", "rsf"]),
+    default="rsf",
+    show_default=True,
+)
+@click.option("--horizon-days", type=int, default=90, show_default=True)
+@click.option("--train-frac", type=float, default=0.8, show_default=True)
+@click.option("--seed", type=int, default=1337, show_default=True)
+def train_survival(estimator: str, horizon_days: int, train_frac: float, seed: int) -> None:
+    """Train Track B and log artifacts to MLflow.
+
+    :param estimator: ``cox`` or ``rsf``.
+    :param horizon_days: Maximum follow-up window in days.
+    :param train_frac: Fraction of rows reserved for training.
+    :param seed: Reproducibility seed.
+    """
+    import joblib
+    import mlflow
+    import numpy as np
+    import pandas as pd
+
+    from flightrisk.data.loaders import load_kkbox
+    from flightrisk.models.survival.labels import build_survival_labels
+    from flightrisk.models.survival.trainer import (
+        save_survival_curve_plot,
+        train_survival_model,
+    )
+    from flightrisk.utils import seed_everything
+    from flightrisk.utils.mlflow_helpers import configure_mlflow, start_run
+    from flightrisk.utils.paths import get_paths
+
+    seed_everything(seed)
+    paths = get_paths()
+    base = paths.data_features / "kkbox"
+    features = pd.read_parquet(base / "features.parquet")
+    cutoff = pd.Timestamp((base / "cutoff.txt").read_text().strip())
+
+    _log.info("rebuilding survival labels at cutoff=%s, horizon=%d", cutoff.date(), horizon_days)
+    raw = load_kkbox()
+    labels = build_survival_labels(
+        raw.transactions, cutoff=cutoff, horizon_days=horizon_days
+    ).to_frame()
+
+    aligned = features.merge(labels, on="msno", how="inner")
+    feat_cols = [c for c in features.columns if c != "msno"]
+    feature_frame = aligned[["msno"] + feat_cols]
+    durations = aligned["duration_days"].values
+    events = aligned["event_observed"].values
+
+    n = len(aligned)
+    perm = np.random.default_rng(seed).permutation(n)
+    cut = int(n * train_frac)
+    train_idx = perm[:cut]
+    test_idx = perm[cut:]
+
+    horizons = (max(horizon_days // 3, 7), max(2 * horizon_days // 3, 14), horizon_days)
+
+    configure_mlflow()
+    with start_run(run_name=f"survival-{estimator}") as run:
+        mlflow.log_params(
+            {
+                "estimator": estimator,
+                "horizon_days": horizon_days,
+                "n_samples": n,
+                "train_frac": train_frac,
+                "seed": seed,
+                "n_features": len(feat_cols),
+            }
+        )
+        result = train_survival_model(
+            feature_frame,
+            durations,
+            events,
+            train_idx=train_idx,
+            test_idx=test_idx,
+            estimator=estimator,
+            horizons_days=horizons,
+        )
+        mlflow.log_metrics(dict(result.metrics.as_dict()))
+
+        out_dir = paths.reports / "survival" / run.info.run_id
+        out_dir.mkdir(parents=True, exist_ok=True)
+        save_survival_curve_plot(
+            result.survival_at_horizons, result.horizons_days, output=out_dir / "survival_curves.png"
+        )
+        joblib.dump(result.model, out_dir / "model.joblib")
+        np.save(out_dir / "survival_at_horizons.npy", result.survival_at_horizons)
+        mlflow.log_artifacts(str(out_dir))
+        _log.info("survival artifacts saved to %s", out_dir)
 
 
 @train_group.command("uplift")
