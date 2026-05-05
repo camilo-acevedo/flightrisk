@@ -47,7 +47,7 @@ class SurvivalTrainingResult:
     feature_names: list[str] = field(default_factory=list)
 
 
-def _build_estimator(name: SurvivalEstimator) -> object:
+def _build_estimator(name: SurvivalEstimator) -> _SurvivalModel:
     """Instantiate the configured survival estimator.
 
     :param name: ``"cox"`` or ``"rsf"``.
