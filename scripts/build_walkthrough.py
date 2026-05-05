@@ -85,9 +85,11 @@ This notebook is the **single guided tour** of the repo. It clones, installs, ge
             r"""
 from __future__ import annotations
 
+import logging
 import os
 import platform
 import sys
+import warnings
 from pathlib import Path
 
 _HERE = Path.cwd().resolve()
@@ -97,6 +99,24 @@ if not (_ROOT / "pyproject.toml").exists():
 os.chdir(_ROOT)
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
+
+os.environ.setdefault("DISABLE_PANDERA_IMPORT_WARNING", "True")
+os.environ.setdefault("FLIGHTRISK_LOG_LEVEL", "WARNING")
+os.environ.setdefault("MPLBACKEND", "Agg")
+
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=RuntimeWarning, message=".*Proactor.*")
+warnings.filterwarnings("ignore", message=".*IProgress not found.*")
+warnings.filterwarnings("ignore", module="tqdm")
+logging.getLogger("mlflow").setLevel(logging.ERROR)
+logging.getLogger("matplotlib").setLevel(logging.ERROR)
+logging.getLogger("lightgbm").setLevel(logging.ERROR)
+logging.getLogger("flightrisk").setLevel(logging.WARNING)
+
+from flightrisk.eval.style import apply_style as _apply_flightrisk_style
+_apply_flightrisk_style()
 
 print(f"Python: {platform.python_version()}  ({sys.executable})")
 print(f"cwd:    {_ROOT}")

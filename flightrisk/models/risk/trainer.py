@@ -175,23 +175,38 @@ def save_calibration_plot(table: pd.DataFrame, *, output: Path) -> Path:
     matplotlib.use("Agg", force=True)
     import matplotlib.pyplot as plt
 
+    from flightrisk.eval.style import PALETTE, annotate_axis, apply_style
+
+    apply_style()
     output.parent.mkdir(parents=True, exist_ok=True)
-    fig, ax = plt.subplots(figsize=(5, 5))
-    ax.plot([0, 1], [0, 1], linestyle="--", color="grey", label="perfect")
+    fig, ax = plt.subplots(figsize=(5.4, 5))
+    ax.plot(
+        [0, 1],
+        [0, 1],
+        linestyle="--",
+        color=PALETTE["perfect"],
+        linewidth=1.2,
+        label="perfect calibration",
+    )
     ax.scatter(
         table["mean_predicted"],
         table["empirical_rate"],
-        s=table["count"].clip(upper=200),
-        alpha=0.7,
-        label="bins",
+        s=table["count"].clip(upper=240) * 1.1,
+        c=PALETTE["risk"],
+        alpha=0.78,
+        edgecolors="white",
+        linewidths=1.0,
+        label="bins (size = count)",
     )
-    ax.set_xlabel("mean predicted probability")
-    ax.set_ylabel("empirical churn rate")
-    ax.set_xlim(0, 1)
-    ax.set_ylim(0, 1)
-    ax.set_title("Risk reliability diagram")
-    ax.legend(loc="upper left")
+    ax.set_xlabel("Mean predicted probability")
+    ax.set_ylabel("Empirical churn rate")
+    ax.set_xlim(-0.02, 1.02)
+    ax.set_ylim(-0.02, 1.02)
+    ax.set_title("Risk — Reliability diagram", loc="left")
+    ax.grid(True, axis="both")
+    ax.legend(loc="upper left", framealpha=0.9)
+    annotate_axis(ax, source="flightrisk · Track A")
     fig.tight_layout()
-    fig.savefig(output, dpi=150)
+    fig.savefig(output)
     plt.close(fig)
     return output

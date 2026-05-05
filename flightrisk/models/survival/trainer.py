@@ -178,19 +178,41 @@ def save_survival_curve_plot(
     matplotlib.use("Agg", force=True)
     import matplotlib.pyplot as plt
 
+    from flightrisk.eval.style import PALETTE, annotate_axis, apply_style
+
+    apply_style()
     rng = np.random.default_rng(0)
     n = survival_at_horizons.shape[0]
     sample_idx = rng.choice(n, size=min(n_curves, n), replace=False)
 
     output.parent.mkdir(parents=True, exist_ok=True)
-    fig, ax = plt.subplots(figsize=(6, 4))
+    fig, ax = plt.subplots(figsize=(7, 4.4))
     for i in sample_idx:
-        ax.step(horizons_days, survival_at_horizons[i], where="post", alpha=0.4)
-    ax.set_xlabel("days")
+        ax.step(
+            horizons_days,
+            survival_at_horizons[i],
+            where="post",
+            color=PALETTE["survival"],
+            alpha=0.18,
+            linewidth=1.4,
+        )
+    median_curve = np.median(survival_at_horizons, axis=0)
+    ax.step(
+        horizons_days,
+        median_curve,
+        where="post",
+        color=PALETTE["accent"],
+        linewidth=2.6,
+        label="cohort median",
+    )
+    ax.set_xlabel("Days since cutoff")
     ax.set_ylabel("S(t)")
     ax.set_ylim(0, 1.05)
-    ax.set_title(f"Survival curves (n={len(sample_idx)} sampled)")
+    ax.set_title(f"Survival — S(t) for {len(sample_idx)} sampled customers", loc="left")
+    ax.grid(True, axis="both")
+    ax.legend(loc="lower left", framealpha=0.9)
+    annotate_axis(ax, source="flightrisk · Track B")
     fig.tight_layout()
-    fig.savefig(output, dpi=150)
+    fig.savefig(output)
     plt.close(fig)
     return output

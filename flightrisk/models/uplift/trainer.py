@@ -150,21 +150,41 @@ def save_qini_plot(curve: pd.DataFrame, *, output: Path) -> Path:
     matplotlib.use("Agg", force=True)
     import matplotlib.pyplot as plt
 
+    from flightrisk.eval.style import PALETTE, annotate_axis, apply_style
+
+    apply_style()
     output.parent.mkdir(parents=True, exist_ok=True)
-    fig, ax = plt.subplots(figsize=(6, 4))
-    ax.plot(curve["rank"], curve["qini"], label="model")
+    fig, ax = plt.subplots(figsize=(7, 4.4))
+    ax.fill_between(
+        curve["rank"],
+        curve["qini"],
+        [(i / len(curve)) * curve["qini"].iloc[-1] for i in range(1, len(curve) + 1)],
+        color=PALETTE["uplift"],
+        alpha=0.12,
+        label="lift over random",
+    )
+    ax.plot(
+        curve["rank"],
+        curve["qini"],
+        color=PALETTE["uplift"],
+        linewidth=2.4,
+        label="model",
+    )
     ax.plot(
         [curve["rank"].iloc[0], curve["rank"].iloc[-1]],
         [0, curve["qini"].iloc[-1]],
         linestyle="--",
-        color="grey",
+        color=PALETTE["random"],
+        linewidth=1.6,
         label="random",
     )
-    ax.set_xlabel("ranked observations")
-    ax.set_ylabel("incremental retained outcomes")
-    ax.set_title("Qini curve")
-    ax.legend()
+    ax.set_xlabel("Ranked observations (best first)")
+    ax.set_ylabel("Incremental retained outcomes")
+    ax.set_title("Uplift — Qini curve", loc="left")
+    ax.grid(True, axis="both")
+    ax.legend(loc="upper left", framealpha=0.9)
+    annotate_axis(ax, source="flightrisk · Track C")
     fig.tight_layout()
-    fig.savefig(output, dpi=150)
+    fig.savefig(output)
     plt.close(fig)
     return output
