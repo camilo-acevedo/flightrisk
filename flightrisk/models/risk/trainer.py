@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Protocol
 
 import numpy as np
 import pandas as pd
@@ -11,6 +12,30 @@ from flightrisk.models.risk.calibration import CalibratedRiskModel, CalibrationM
 from flightrisk.models.risk.lightgbm_model import LightGBMRiskModel, LightGBMRiskParams
 from flightrisk.models.risk.xgboost_model import XGBoostRiskModel, XGBoostRiskParams
 from flightrisk.utils.logging import get_logger
+
+
+class _RiskScorer(Protocol):
+    """Protocol satisfied by every wrapper that produces probabilities."""
+
+    def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
+        """Return positive-class probabilities."""
+        ...
+
+
+class _RiskBase(_RiskScorer, Protocol):
+    """Base risk wrapper: scorer plus a fit method with early stopping support."""
+
+    def fit(
+        self,
+        X: pd.DataFrame,
+        y: np.ndarray,
+        *,
+        X_val: pd.DataFrame | None = ...,
+        y_val: np.ndarray | None = ...,
+    ) -> _RiskBase:
+        """Fit the model in place and return self."""
+        ...
+
 
 _log = get_logger(__name__)
 
@@ -31,7 +56,7 @@ class RiskTrainingResult:
     feature_names: list[str] = field(default_factory=list)
 
 
-def _build_base(estimator: str) -> object:
+def _build_base(estimator: str) -> _RiskBase:
     """Instantiate the configured base estimator.
 
     :param estimator: Either ``"lightgbm"`` or ``"xgboost"``.
@@ -112,9 +137,10 @@ def train_risk_model(
     base = _build_base(estimator)
     base.fit(X_train, y_train, X_val=X_val, y_val=y_val)
 
+    model: _RiskScorer
     if calibration is not None:
         _log.info("fitting %s calibrator on validation slice", calibration)
-        model: object = CalibratedRiskModel(base, method=calibration).fit(X_val, y_val)
+        model = CalibratedRiskModel(base, method=calibration).fit(X_val, y_val)
     else:
         model = base
 

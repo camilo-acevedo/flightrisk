@@ -52,7 +52,7 @@ class UpliftTrainingResult:
     feature_names: list[str] = field(default_factory=list)
 
 
-def _build_estimator(name: UpliftEstimator) -> object:
+def _build_estimator(name: UpliftEstimator) -> _UpliftModel:
     """Instantiate the configured uplift estimator.
 
     :param name: One of ``"t_learner"``, ``"x_learner"``, ``"dr_learner"``,
