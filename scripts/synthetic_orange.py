@@ -44,7 +44,9 @@ def generate(
     )
     base_p = 1 / (1 + np.exp(-base_logit))
 
-    tau = np.clip(0.05 + 0.25 * (informative[:, 4] > 0) + 0.10 * (informative[:, 5] > 0.5), 0.0, 0.6)
+    tau = np.clip(
+        0.05 + 0.25 * (informative[:, 4] > 0) + 0.10 * (informative[:, 5] > 0.5), 0.0, 0.6
+    )
 
     treatment = (rng.uniform(size=n_customers) < treated_share).astype(int)
     p = np.clip(base_p + tau * treatment, 0.001, 0.999)

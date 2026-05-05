@@ -126,7 +126,12 @@ def generate(n_users: int = 50_000, *, seed: int = 1337) -> dict[str, pd.DataFra
     )
     labels = pd.DataFrame({"msno": msnos, "is_churn": is_churn})
 
-    return {"members": members, "transactions": transactions, "user_logs": user_logs, "labels": labels}
+    return {
+        "members": members,
+        "transactions": transactions,
+        "user_logs": user_logs,
+        "labels": labels,
+    }
 
 
 def write(frames: dict[str, pd.DataFrame], *, root: Path | None = None) -> Path:
