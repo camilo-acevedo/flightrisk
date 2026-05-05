@@ -1,0 +1,42 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: flightrisk:latest
+    container_name: flightrisk-api
+    ports:
+      - "8000:8000"
+    environment:
+      FLIGHTRISK_LOG_LEVEL: INFO
+      FLIGHTRISK_MLFLOW_TRACKING_URI: file:///app/mlruns
+    volumes:
+      - ./reports:/app/reports:ro
+      - ./mlruns:/app/mlruns:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  demo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: flightrisk:latest
+    container_name: flightrisk-demo
+    command: streamlit run flightrisk/serving/streamlit_app.py --server.port=8501 --server.address=0.0.0.0 --server.headless=true
+    ports:
+      - "8501:8501"
+    environment:
+      FLIGHTRISK_LOG_LEVEL: INFO
+    volumes:
+      - ./reports:/app/reports:ro
+      - ./mlruns:/app/mlruns:ro
+      - ./data/features:/app/data/features:ro
+    depends_on:
+      api:
+        condition: service_started
+    restart: unless-stopped
