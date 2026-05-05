@@ -302,6 +302,33 @@ streamlit run flightrisk/serving/streamlit_app.py
 
 ---
 
+## Hyperparameter sweeps
+
+`flightrisk tune risk` runs an Optuna TPE search over LightGBM hyperparameters using a YAML-defined search space ([`configs/sweep/risk_lgbm.yaml`](configs/sweep/risk_lgbm.yaml)). Every trial is logged as a child MLflow run and the parent run records the best params, the best metric, and the per-trial CSV.
+
+```powershell
+flightrisk tune risk --config configs/sweep/risk_lgbm.yaml
+```
+
+A 50-trial sweep on the synthetic KKBox bundle improved validation AUC from 0.7247 (baseline) to 0.7614. The same workflow applies to real KKBox once the raw bundle is in place.
+
+The YAML supports `float`, `int`, and `categorical` parameters with optional log-uniform sampling:
+
+```yaml
+search_space:
+  learning_rate:
+    type: float
+    low: 0.01
+    high: 0.2
+    log: true
+  num_leaves:
+    type: int
+    low: 15
+    high: 255
+```
+
+---
+
 ## Container deployment
 
 A multi-stage [`Dockerfile`](Dockerfile) and a [`docker-compose.yml`](docker-compose.yml) ship with the repo. The image runs as an unprivileged user, exposes the FastAPI scoring service on port 8000, and includes a `HEALTHCHECK` against `/health`.

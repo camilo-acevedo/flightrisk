@@ -386,6 +386,100 @@ def train_uplift(estimator: str, n_splits: int, seed: int) -> None:
         _log.info("uplift artifacts saved to %s", out_dir)
 
 
+@main.group("tune", help="Hyperparameter sweeps via Optuna.")
+def tune_group() -> None:
+    """Tune subcommands."""
+
+
+@tune_group.command("risk", help="Sweep LightGBM risk hyperparameters with Optuna.")
+@click.option(
+    "--config",
+    default="configs/sweep/risk_lgbm.yaml",
+    show_default=True,
+    help="Path to a sweep YAML.",
+)
+@click.option("--train-frac", type=float, default=0.7, show_default=True)
+@click.option("--val-frac", type=float, default=0.15, show_default=True)
+@click.option("--seed", type=int, default=1337, show_default=True)
+def tune_risk(config: str, train_frac: float, val_frac: float, seed: int) -> None:
+    """Run an Optuna sweep over LightGBM risk hyperparameters.
+
+    Each trial is logged to MLflow as a child of a parent ``tune-risk`` run;
+    the parent run records the best params / metric at the end.
+
+    :param config: Path to the sweep YAML.
+    :param train_frac: Fraction of rows used for trial fitting.
+    :param val_frac: Fraction of rows used for early stopping and scoring.
+    :param seed: Reproducibility seed.
+    """
+    import json
+
+    import mlflow
+    import numpy as np
+    import pandas as pd
+
+    try:
+        from optuna.integration import MLflowCallback
+    except ImportError:
+        MLflowCallback = None  # type: ignore[assignment,misc]
+
+    from flightrisk.models.risk.tune import load_sweep_space, run_risk_sweep
+    from flightrisk.utils import seed_everything
+    from flightrisk.utils.mlflow_helpers import configure_mlflow, start_run
+    from flightrisk.utils.paths import get_paths
+
+    seed_everything(seed)
+    paths = get_paths()
+    base = paths.data_features / "kkbox"
+    features = pd.read_parquet(base / "features.parquet")
+    labels = pd.read_parquet(base / "labels.parquet")
+    space = load_sweep_space(config)
+
+    n = len(features)
+    perm = np.random.default_rng(seed).permutation(n)
+    train_cut = int(n * train_frac)
+    val_cut = int(n * (train_frac + val_frac))
+    train_idx = perm[:train_cut]
+    val_idx = perm[train_cut:val_cut]
+
+    configure_mlflow()
+    callback = (
+        MLflowCallback(tracking_uri=mlflow.get_tracking_uri(), metric_name=space.metric)
+        if MLflowCallback is not None
+        else None
+    )
+    with start_run(run_name=f"tune-risk-{space.name}") as run:
+        mlflow.log_params(
+            {
+                "sweep_name": space.name,
+                "direction": space.direction,
+                "metric": space.metric,
+                "n_trials": space.n_trials,
+                "seed": seed,
+                "train_frac": train_frac,
+                "val_frac": val_frac,
+            }
+        )
+        result = run_risk_sweep(
+            features,
+            labels["is_churn"].values,
+            train_idx=train_idx,
+            val_idx=val_idx,
+            space=space,
+            seed=seed,
+            mlflow_callback=callback,
+        )
+        mlflow.log_metric(f"best_{space.metric}", result.best_metric)
+        mlflow.log_metrics({f"best_{k}": v for k, v in result.best_metrics.as_dict().items()})
+
+        out_dir = paths.reports / "tune" / run.info.run_id
+        out_dir.mkdir(parents=True, exist_ok=True)
+        (out_dir / "best_params.json").write_text(json.dumps(result.best_params, indent=2))
+        result.study.trials_dataframe().to_csv(out_dir / "trials.csv", index=False)
+        mlflow.log_artifacts(str(out_dir))
+        _log.info("sweep artifacts saved to %s", out_dir)
+
+
 @main.command("simulate", help="Run the campaign ROI simulator across budgets.")
 @click.option(
     "--budgets",
