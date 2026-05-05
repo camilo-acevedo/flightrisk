@@ -381,10 +381,78 @@ def train_uplift(estimator: str, n_splits: int, seed: int) -> None:
         _log.info("uplift artifacts saved to %s", out_dir)
 
 
-@main.command("simulate", help="Run the campaign ROI simulator.")
-def simulate() -> None:
-    """Run the campaign ROI simulator. Lands in step 6."""
-    _log.info("simulate is not yet implemented; coming in step 6.")
+@main.command("simulate", help="Run the campaign ROI simulator across budgets.")
+@click.option(
+    "--budgets",
+    default="100000,250000,500000",
+    show_default=True,
+    help="Comma-separated dollar budgets.",
+)
+@click.option("--cost-per-treated", type=float, default=5.0, show_default=True)
+@click.option("--revenue-per-retained", type=float, default=50.0, show_default=True)
+@click.option("--bootstrap-iters", type=int, default=1000, show_default=True)
+@click.option("--seed", type=int, default=1337, show_default=True)
+@click.option(
+    "--n-customers",
+    type=int,
+    default=10000,
+    show_default=True,
+    help="Population size for the synthetic preview if no real scores are present.",
+)
+def simulate(
+    budgets: str,
+    cost_per_treated: float,
+    revenue_per_retained: float,
+    bootstrap_iters: int,
+    seed: int,
+    n_customers: int,
+) -> None:
+    """Compare risk vs uplift vs random across budgets and save a chart.
+
+    :param budgets: Comma-separated dollar budgets.
+    :param cost_per_treated: Cost per treated customer.
+    :param revenue_per_retained: Revenue per retained customer.
+    :param bootstrap_iters: Bootstrap iterations.
+    :param seed: Reproducibility seed.
+    :param n_customers: Population size for the synthetic preview when
+        feature/score artifacts are not yet present on disk.
+    """
+    import numpy as np
+
+    from flightrisk.eval.plots import save_roi_chart
+    from flightrisk.eval.simulator import SimulatorConfig, compare_policies
+    from flightrisk.utils import seed_everything
+    from flightrisk.utils.paths import get_paths
+
+    seed_everything(seed)
+    parsed_budgets = tuple(float(b.strip()) for b in budgets.split(",") if b.strip())
+
+    rng = np.random.default_rng(seed)
+    risk = rng.uniform(0, 1, size=n_customers)
+    uplift = rng.uniform(0, 0.3, size=n_customers) + 0.5 * (risk > 0.7)
+    base = 1.0 - risk
+    lift = np.clip(0.05 + 0.4 * (risk > 0.7) * (uplift > 0.4), 0.0, 1.0)
+
+    config = SimulatorConfig(
+        cost_per_treated=cost_per_treated,
+        revenue_per_retained=revenue_per_retained,
+        bootstrap_iters=bootstrap_iters,
+        random_state=seed,
+    )
+    comparison = compare_policies(
+        risk_scores=risk,
+        uplift_scores=uplift,
+        treatment_lift=lift,
+        base_outcome=base,
+        budgets=parsed_budgets,
+        config=config,
+    )
+
+    out_dir = get_paths().reports / "simulator"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    comparison.to_csv(out_dir / "policy_comparison.csv", index=False)
+    chart = save_roi_chart(comparison, output=out_dir / "roi_chart.png")
+    _log.info("ROI chart written to %s", chart)
 
 
 if __name__ == "__main__":
