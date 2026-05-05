@@ -28,16 +28,16 @@ class LightGBMRiskParams:
     """
 
     objective: str = "binary"
-    learning_rate: float = 0.05
-    num_leaves: int = 63
+    learning_rate: float = 0.03
+    num_leaves: int = 95
     max_depth: int = -1
-    min_data_in_leaf: int = 200
-    feature_fraction: float = 0.85
-    bagging_fraction: float = 0.85
+    min_data_in_leaf: int = 250
+    feature_fraction: float = 0.80
+    bagging_fraction: float = 0.80
     bagging_freq: int = 5
-    lambda_l2: float = 1.0
-    n_estimators: int = 800
-    early_stopping_rounds: int = 50
+    lambda_l2: float = 1.5
+    n_estimators: int = 1500
+    early_stopping_rounds: int = 80
     verbose: int = -1
 
     def as_native(self) -> Mapping[str, Any]:

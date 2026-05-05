@@ -21,11 +21,11 @@ class LightGBMUpliftParams:
     """
 
     objective: str = "binary"
-    learning_rate: float = 0.05
-    num_leaves: int = 63
-    min_data_in_leaf: int = 200
-    n_estimators: int = 600
-    feature_fraction: float = 0.85
+    learning_rate: float = 0.04
+    num_leaves: int = 95
+    min_data_in_leaf: int = 100
+    n_estimators: int = 800
+    feature_fraction: float = 0.80
     verbose: int = -1
 
 

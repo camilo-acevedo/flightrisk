@@ -93,7 +93,19 @@ def generate(n_users: int = 50_000, *, seed: int = 1337) -> dict[str, pd.DataFra
                 )
             )
 
-        churn_logit = -2.5 + 1.5 * (1 - auto_renew) + 1.5 * (1 - is_paying) - 1.2 * engagement
+        days_since_login = (
+            float(rng.uniform(0.0, 60.0)) if engagement < 0.4 else float(rng.uniform(0.0, 14.0))
+        )
+        plan_premium = (plan_price - 99) / 100.0
+        churn_logit = (
+            -2.4
+            + 1.6 * (1 - auto_renew)
+            + 1.4 * (1 - is_paying)
+            - 1.6 * engagement
+            + 0.04 * days_since_login
+            - 0.5 * plan_premium
+            + 0.6 * (1 - auto_renew) * (1 - engagement)
+        )
         is_churn[i] = int(rng.uniform() < 1 / (1 + np.exp(-churn_logit)))
 
     transactions = pd.DataFrame(

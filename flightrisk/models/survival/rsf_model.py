@@ -24,10 +24,10 @@ class RSFParams:
     :param random_state: Seed for tree bagging.
     """
 
-    n_estimators: int = 200
+    n_estimators: int = 400
     max_depth: int | None = None
-    min_samples_leaf: int = 30
-    min_samples_split: int = 60
+    min_samples_leaf: int = 20
+    min_samples_split: int = 40
     max_features: str = "sqrt"
     n_jobs: int = -1
     random_state: int = 1337

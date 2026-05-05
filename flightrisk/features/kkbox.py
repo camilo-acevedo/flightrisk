@@ -175,6 +175,73 @@ def listening_features(
     return out.merge(last_login_frame, on="msno", how="left")
 
 
+def derived_features(frame: pd.DataFrame) -> pd.DataFrame:
+    """Add interaction, ratio, and log-transformed features to the matrix.
+
+    These are cheap, deterministic combinations of base features that tend to
+    move tree-based models on subscription churn data:
+
+    * ``log1p`` of long-tailed counters (tenure, plays, songs)
+    * recent-vs-lifetime engagement ratios
+    * spend efficiency (``actual / list``) and a ``charge_drop`` flag
+    * recency band indicators (``never_logged_in``, ``inactive_30d``)
+    * tenure × auto-renew interaction (loyalty proxy)
+
+    :param frame: A frame produced by :func:`build_kkbox_feature_matrix`.
+    :returns: A copy of ``frame`` with extra columns appended.
+    """
+    out = frame.copy()
+
+    def _safe_div(num: pd.Series, den: pd.Series) -> pd.Series:
+        """Divide with a 1-floored denominator and return a numeric series."""
+        return (num.astype("float64") / den.astype("float64").clip(lower=1.0)).astype("float64")
+
+    if "tenure_days" in out.columns:
+        out["tenure_days_log"] = np.log1p(out["tenure_days"].clip(lower=0)).astype("float64")
+    for window in (7, 30, 90):
+        plays_col = f"plays_{window}d"
+        active_col = f"active_days_{window}d"
+        unique_col = f"unique_songs_{window}d"
+        if plays_col in out.columns:
+            out[f"{plays_col}_log"] = np.log1p(out[plays_col].clip(lower=0)).astype("float64")
+            if active_col in out.columns:
+                out[f"plays_per_active_day_{window}d"] = _safe_div(out[plays_col], out[active_col])
+            if unique_col in out.columns:
+                out[f"diversity_ratio_{window}d"] = _safe_div(out[unique_col], out[plays_col])
+
+    if "plays_7d" in out.columns and "plays_30d" in out.columns:
+        out["recent_engagement_ratio_7_30"] = _safe_div(out["plays_7d"] * 30 / 7, out["plays_30d"])
+    if "plays_30d" in out.columns and "plays_90d" in out.columns:
+        out["recent_engagement_ratio_30_90"] = _safe_div(
+            out["plays_30d"] * 90 / 30, out["plays_90d"]
+        )
+
+    if "last_actual_amount_paid" in out.columns and "last_plan_list_price" in out.columns:
+        out["spend_efficiency"] = _safe_div(
+            out["last_actual_amount_paid"], out["last_plan_list_price"]
+        )
+        out["charge_drop_flag"] = (out["spend_efficiency"] < 0.5).astype("int64")
+
+    if "auto_renew_share" in out.columns and "tenure_days" in out.columns:
+        out["loyalty_proxy"] = (
+            out["auto_renew_share"].fillna(0).astype("float64")
+            * np.log1p(out["tenure_days"].clip(lower=0))
+        ).astype("float64")
+    if "cancel_share" in out.columns and "auto_renew_share" in out.columns:
+        out["churn_intent_proxy"] = (
+            out["cancel_share"].fillna(0).astype("float64")
+            * (1.0 - out["auto_renew_share"].fillna(0).astype("float64"))
+        ).astype("float64")
+
+    if "days_since_last_login" in out.columns:
+        col = out["days_since_last_login"].astype("float64")
+        out["never_logged_in"] = col.isna().astype("int64")
+        out["inactive_7d"] = (col.fillna(9999) >= 7).astype("int64")
+        out["inactive_30d"] = (col.fillna(9999) >= 30).astype("int64")
+
+    return out
+
+
 def build_kkbox_feature_matrix(
     members: pd.DataFrame,
     transactions: pd.DataFrame,
@@ -200,4 +267,5 @@ def build_kkbox_feature_matrix(
         include_payment_dynamics=cfg.include_payment_dynamics,
     )
     logs = listening_features(user_logs, cutoff=cutoff, config=cfg)
-    return base.merge(txn, on="msno", how="left").merge(logs, on="msno", how="left")
+    raw = base.merge(txn, on="msno", how="left").merge(logs, on="msno", how="left")
+    return derived_features(raw)
