@@ -5,6 +5,7 @@
 **Honest churn modelling on real public data — risk, survival, and uplift, scored in dollars.**
 
 [![CI](https://github.com/camilo-acevedo/flightrisk/actions/workflows/ci.yml/badge.svg)](https://github.com/camilo-acevedo/flightrisk/actions/workflows/ci.yml)
+[![docs](https://github.com/camilo-acevedo/flightrisk/actions/workflows/docs.yml/badge.svg)](https://camilo-acevedo.github.io/flightrisk/)
 [![python](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/)
 [![tests](https://img.shields.io/badge/tests-76%2F76-brightgreen.svg)](#testing)
 [![docker](https://img.shields.io/badge/docker-ready-2496ED.svg?logo=docker&logoColor=white)](#container-deployment)
