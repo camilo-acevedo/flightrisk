@@ -498,25 +498,27 @@ flightrisk train uplift   --estimator t_learner
 flightrisk simulate       --budgets 10000,25000,50000 --n-customers 12000
 ```
 
-**Track A (Risk).** LightGBM + isotonic calibration on 21,000 train / 4,500 val / 4,500 test rows:
+**Track A (Risk).** LightGBM + isotonic calibration on 21,000 train / 4,500 val / 4,500 test rows. With the engineered features (interaction terms, log-transforms, recency bands) and tuned defaults the model now reaches:
 
 | AUC | PR-AUC | Brier | ECE | Decile lift |
 |---|---|---|---|---|
-| 0.7247 | 0.2959 | 0.0985 | **0.0175** | 2.78× |
+| **0.8100** | **0.5539** | 0.1281 | 0.0206 | **3.17×** |
+
+(Baseline before the metric-boost branch was AUC 0.72, PR-AUC 0.30, decile lift 2.78×.)
 
 **Track B (Survival).** Random Survival Forest, horizon 60 days, 24,000 train / 6,000 test, event rate ≈ 13%:
 
 | C-index | Integrated Brier | td-AUC mean |
 |---|---|---|
-| 0.6571 | 0.0613 | n/a (degenerate censoring on synthetic data — expected on real KKBox)|
+| 0.6598 | 0.0625 | n/a (degenerate censoring on synthetic data — expected on real KKBox) |
 
 **Track C (Uplift).** All three meta-learners on the synthetic RCT (9,600 train / 2,400 test, treated rate 49.5%):
 
 | Estimator | Qini | AUUC | uplift@10% |
 |---|---|---|---|
-| T-learner | 0.0130 | 309.5 | 0.345 |
-| X-learner | 0.0125 | 304.8 | 0.361 |
-| DR-learner | 0.0128 | 305.9 | 0.359 |
+| T-learner | 0.0145 | 316.7 | 0.345 |
+| X-learner | 0.0142 | 316.5 | **0.398** |
+| DR-learner | **0.0149** | 314.7 | 0.365 |
 
 **Headline ROI simulator** (12,000 customers, budgets $10k / $25k / $50k, $5 per treated, $50 per retained):
 
