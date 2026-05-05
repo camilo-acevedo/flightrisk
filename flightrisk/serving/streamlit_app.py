@@ -7,12 +7,23 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from flightrisk.eval.style import PALETTE
 from flightrisk.utils.paths import get_paths
 
 _BG = "rgba(0,0,0,0)"
-_GRID = "rgba(148,163,184,0.18)"
+_GRID = "rgba(148,163,184,0.10)"
+_AXIS = "rgba(148,163,184,0.35)"
 _FONT_FAMILY = "Inter, Segoe UI, system-ui, sans-serif"
+_TEXT = "#E2E8F0"
+_MUTED = "#94A3B8"
+_DARK_PALETTE = {
+    "risk": "#60A5FA",
+    "uplift": "#34D399",
+    "survival": "#C084FC",
+    "random": "#64748B",
+    "perfect": "#E2E8F0",
+    "accent": "#F59E0B",
+    "muted": "#94A3B8",
+}
 
 
 def _list_runs(track: str) -> list[str]:
@@ -111,19 +122,44 @@ def _shap_explanation(
 
 
 def _apply_layout_template(fig) -> None:
-    """Apply the flightrisk plotly layout template to a figure in place.
+    """Apply the dark-mode flightrisk plotly layout template to a figure.
 
     :param fig: A plotly :class:`Figure`.
     """
     fig.update_layout(
-        template="plotly_white",
-        font=dict(family=_FONT_FAMILY, color=PALETTE["perfect"], size=13),
+        template="plotly_dark",
+        font=dict(family=_FONT_FAMILY, color=_TEXT, size=13),
         paper_bgcolor=_BG,
         plot_bgcolor=_BG,
-        margin=dict(l=10, r=10, t=42, b=10),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
-        xaxis=dict(gridcolor=_GRID, zerolinecolor=_GRID, showline=False),
-        yaxis=dict(gridcolor=_GRID, zerolinecolor=_GRID, showline=False),
+        margin=dict(l=12, r=12, t=44, b=12),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="left",
+            x=0,
+            font=dict(color=_MUTED, size=12),
+            bgcolor="rgba(0,0,0,0)",
+        ),
+        xaxis=dict(
+            gridcolor=_GRID,
+            zerolinecolor=_GRID,
+            linecolor=_AXIS,
+            tickcolor=_AXIS,
+            showline=False,
+            title=dict(font=dict(color=_MUTED, size=12)),
+            tickfont=dict(color=_MUTED, size=11),
+        ),
+        yaxis=dict(
+            gridcolor=_GRID,
+            zerolinecolor=_GRID,
+            linecolor=_AXIS,
+            tickcolor=_AXIS,
+            showline=False,
+            title=dict(font=dict(color=_MUTED, size=12)),
+            tickfont=dict(color=_MUTED, size=11),
+        ),
+        title=dict(font=dict(color=_TEXT, size=14), x=0, xanchor="left"),
     )
 
 
@@ -140,53 +176,132 @@ def _kpi_row(items: list[tuple[str, str, str | None]]) -> None:
 
 
 def _hero() -> None:
-    """Render the page hero with title, tagline, and styling."""
+    """Render the page hero with title, tagline, and dark theme styling."""
     st.markdown(
         """
         <style>
+            html, body, [class*="css"]  { font-family: "Inter", "Segoe UI", system-ui, sans-serif; }
+            .stApp { background: #0B1020; }
+            .block-container { padding-top: 2.2rem !important; }
+
             .flightrisk-hero {
-                padding: 22px 26px;
-                border-radius: 16px;
-                background: linear-gradient(135deg, #0F172A 0%, #1F6FEB 60%, #2DA44E 100%);
-                color: #FFFFFF;
-                margin-bottom: 18px;
+                position: relative;
+                padding: 28px 32px;
+                border-radius: 18px;
+                background:
+                    radial-gradient(1200px 240px at 0% 0%, rgba(96,165,250,0.18), transparent 60%),
+                    radial-gradient(900px 220px at 100% 100%, rgba(52,211,153,0.16), transparent 55%),
+                    linear-gradient(180deg, #131A2C 0%, #0F1525 100%);
+                border: 1px solid rgba(96,165,250,0.18);
+                color: #E2E8F0;
+                margin-bottom: 22px;
+                box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 12px 40px rgba(0,0,0,0.35);
             }
             .flightrisk-hero h1 {
                 margin: 0;
                 font-weight: 700;
-                font-size: 28px;
-                letter-spacing: -0.01em;
+                font-size: 30px;
+                letter-spacing: -0.02em;
+                background: linear-gradient(90deg, #E2E8F0 0%, #60A5FA 60%, #34D399 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
             }
             .flightrisk-hero p {
-                margin: 6px 0 0 0;
-                opacity: 0.92;
+                margin: 8px 0 0 0;
+                color: #94A3B8;
                 font-size: 14px;
+                max-width: 760px;
+                line-height: 1.55;
             }
+
             div[data-testid="stMetric"] {
-                background: #FFFFFF;
-                border: 1px solid rgba(15,23,42,0.06);
+                background: rgba(19, 26, 44, 0.72);
+                border: 1px solid rgba(148,163,184,0.10);
                 border-radius: 14px;
-                padding: 14px 16px;
-                box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+                padding: 16px 18px;
+                box-shadow: 0 1px 0 rgba(255,255,255,0.03) inset;
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+                transition: border-color .2s ease, transform .2s ease;
+            }
+            div[data-testid="stMetric"]:hover {
+                border-color: rgba(96,165,250,0.35);
+                transform: translateY(-1px);
             }
             div[data-testid="stMetricLabel"] p {
-                font-size: 12px !important;
+                font-size: 11px !important;
                 font-weight: 600;
-                color: #64748B;
-                letter-spacing: 0.04em;
+                color: #94A3B8 !important;
+                letter-spacing: 0.08em;
                 text-transform: uppercase;
             }
             div[data-testid="stMetricValue"] {
-                color: #0F172A;
+                color: #F1F5F9 !important;
                 font-weight: 700;
+                font-size: 28px !important;
+                letter-spacing: -0.01em;
             }
+            div[data-testid="stMetricDelta"] {
+                color: #64748B !important;
+                font-weight: 500;
+                font-size: 12px !important;
+            }
+
             section[data-testid="stSidebar"] {
-                background: #F8FAFC;
+                background: #0E1424 !important;
+                border-right: 1px solid rgba(148,163,184,0.08);
             }
+            section[data-testid="stSidebar"] * {
+                color: #CBD5E1 !important;
+            }
+            section[data-testid="stSidebar"] code {
+                color: #60A5FA !important;
+                background: rgba(96,165,250,0.08) !important;
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-size: 12px;
+            }
+            section[data-testid="stSidebar"] a {
+                color: #60A5FA !important;
+            }
+
+            .stTabs [data-baseweb="tab-list"] {
+                gap: 4px;
+                border-bottom: 1px solid rgba(148,163,184,0.12);
+            }
+            .stTabs [data-baseweb="tab"] {
+                color: #94A3B8;
+                background: transparent;
+                padding: 10px 14px;
+                font-weight: 500;
+            }
+            .stTabs [aria-selected="true"] {
+                color: #60A5FA !important;
+                background: rgba(96,165,250,0.08);
+                border-radius: 8px 8px 0 0;
+            }
+
+            .stMarkdown h3, .stMarkdown h4, .stMarkdown h5 {
+                color: #E2E8F0;
+                font-weight: 600;
+            }
+            .stCaption, .st-emotion-cache-1jicfl2 p { color: #94A3B8 !important; }
+
+            .stSelectbox label, .stSlider label { color: #94A3B8 !important; font-weight: 500; }
+
+            div[data-testid="stExpander"] {
+                background: rgba(19,26,44,0.55);
+                border: 1px solid rgba(148,163,184,0.10);
+                border-radius: 12px;
+            }
+            div[data-testid="stExpander"] summary { color: #CBD5E1; }
+
+            .stDataFrame, .stDataFrame * { background: transparent !important; }
         </style>
         <div class="flightrisk-hero">
             <h1>flightrisk</h1>
-            <p>Identify customers on the verge before they take off — risk, survival, and uplift, scored in dollars.</p>
+            <p>Identify customers on the verge before they take off &mdash; risk, survival, and uplift, scored in dollars.</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -228,7 +343,7 @@ def _render_risk_tab() -> None:
                 x=[0, 1],
                 y=[0, 1],
                 mode="lines",
-                line=dict(color=PALETTE["perfect"], dash="dash", width=1.4),
+                line=dict(color=_DARK_PALETTE["perfect"], dash="dash", width=1.4),
                 name="perfect",
             )
         )
@@ -239,9 +354,9 @@ def _render_risk_tab() -> None:
                 mode="markers",
                 marker=dict(
                     size=np.clip(calib["count"], a_min=8, a_max=42),
-                    color=PALETTE["risk"],
-                    line=dict(color="white", width=1.4),
-                    opacity=0.85,
+                    color=_DARK_PALETTE["risk"],
+                    line=dict(color="rgba(11,16,32,0.9)", width=1.6),
+                    opacity=0.92,
                 ),
                 hovertemplate=(
                     "predicted: %{x:.3f}<br>empirical: %{y:.3f}<br>count: %{marker.size:.0f}<extra></extra>"
@@ -277,7 +392,7 @@ def _render_risk_tab() -> None:
             x="mean_abs_shap",
             y="feature",
             orientation="h",
-            color_discrete_sequence=[PALETTE["risk"]],
+            color_discrete_sequence=[_DARK_PALETTE["risk"]],
         )
         _apply_layout_template(fig_shap)
         fig_shap.update_layout(
@@ -333,7 +448,7 @@ def _render_survival_tab() -> None:
                 x=horizons,
                 y=matrix[i],
                 mode="lines",
-                line=dict(color=PALETTE["survival"], width=1.2),
+                line=dict(color=_DARK_PALETTE["survival"], width=1.2),
                 opacity=0.18,
                 showlegend=False,
                 hoverinfo="skip",
@@ -344,7 +459,7 @@ def _render_survival_tab() -> None:
             x=horizons,
             y=median_curve,
             mode="lines",
-            line=dict(color=PALETTE["accent"], width=2.6),
+            line=dict(color=_DARK_PALETTE["accent"], width=2.6),
             name="cohort median",
         )
     )
@@ -399,7 +514,7 @@ def _render_uplift_tab() -> None:
             y=random_line,
             mode="lines",
             name="random",
-            line=dict(color=PALETTE["random"], dash="dash", width=1.6),
+            line=dict(color=_DARK_PALETTE["random"], dash="dash", width=1.6),
         )
     )
     fig.add_trace(
@@ -408,9 +523,9 @@ def _render_uplift_tab() -> None:
             y=curve["qini"],
             mode="lines",
             name="model",
-            line=dict(color=PALETTE["uplift"], width=2.6),
+            line=dict(color=_DARK_PALETTE["uplift"], width=2.6),
             fill="tonexty",
-            fillcolor="rgba(45,164,78,0.18)",
+            fillcolor="rgba(52,211,153,0.16)",
         )
     )
     _apply_layout_template(fig)
@@ -449,7 +564,7 @@ def _render_uplift_tab() -> None:
             x="decile",
             y="uplift",
             color="uplift",
-            color_continuous_scale=["#94A3B8", PALETTE["uplift"]],
+            color_continuous_scale=["#1E293B", _DARK_PALETTE["uplift"]],
         )
         _apply_layout_template(fig_dec)
         fig_dec.update_layout(
@@ -506,9 +621,9 @@ def _render_simulator_tab() -> None:
 
     pretty = {"risk": "Top-k by P(churn)", "uplift": "Top-k by τ̂", "random": "Random"}
     colours = {
-        "risk": PALETTE["risk"],
-        "uplift": PALETTE["uplift"],
-        "random": PALETTE["random"],
+        "risk": _DARK_PALETTE["risk"],
+        "uplift": _DARK_PALETTE["uplift"],
+        "random": _DARK_PALETTE["random"],
     }
     fig = go.Figure()
     for policy in ("risk", "uplift", "random"):
@@ -522,16 +637,19 @@ def _render_simulator_tab() -> None:
                 x=[f"${int(b):,}" for b in sub["budget"]],
                 y=sub["expected_revenue"],
                 name=pretty.get(policy, policy),
-                marker_color=colours.get(policy, PALETTE["muted"]),
+                marker_color=colours.get(policy, _DARK_PALETTE["muted"]),
                 error_y=dict(
                     type="data",
                     array=upper.clip(lower=0),
                     arrayminus=lower.clip(lower=0),
-                    color=PALETTE["muted"],
+                    color=_AXIS,
                     thickness=1.4,
                 ),
                 text=[f"${v / 1000:,.0f}k" for v in sub["expected_revenue"]],
                 textposition="outside",
+                textfont=dict(color=_TEXT, size=11),
+                marker_line_color="rgba(11,16,32,0.6)",
+                marker_line_width=1.0,
                 hovertemplate=(
                     "<b>%{x}</b><br>%{fullData.name}<br>revenue: %{y:$,.0f}<extra></extra>"
                 ),
