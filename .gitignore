@@ -40,6 +40,9 @@ reports/**
 .dvc/cache/
 .dvc/tmp/
 
+docs/_build/
+docs/api/_autosummary/
+
 .env
 .envrc
 *.local
