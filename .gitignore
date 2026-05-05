@@ -30,8 +30,8 @@ data/features/
 
 mlruns/
 mlartifacts/
-reports/figures/
-reports/html/
+reports/**
+!reports/.gitkeep
 *.pkl
 *.joblib
 *.h5

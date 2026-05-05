@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any
 
 import lightgbm as lgb
 import numpy as np
@@ -95,7 +96,7 @@ class LightGBMRiskModel:
         X_val: pd.DataFrame | None = None,
         y_val: np.ndarray | None = None,
         categorical_features: list[str] | None = None,
-    ) -> "LightGBMRiskModel":
+    ) -> LightGBMRiskModel:
         """Fit the model with optional early stopping on a validation slice.
 
         :param X: Training features.

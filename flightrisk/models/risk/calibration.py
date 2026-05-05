@@ -7,7 +7,6 @@ import pandas as pd
 from sklearn.isotonic import IsotonicRegression
 from sklearn.linear_model import LogisticRegression
 
-
 CalibrationMethod = Literal["isotonic", "platt"]
 
 
@@ -40,7 +39,7 @@ class CalibratedRiskModel:
         self._iso: IsotonicRegression | None = None
         self._platt: LogisticRegression | None = None
 
-    def fit(self, X_val: pd.DataFrame, y_val: np.ndarray) -> "CalibratedRiskModel":
+    def fit(self, X_val: pd.DataFrame, y_val: np.ndarray) -> CalibratedRiskModel:
         """Fit the calibrator on a held-out validation slice.
 
         :param X_val: Validation features.

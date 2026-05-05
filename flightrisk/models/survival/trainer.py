@@ -20,7 +20,7 @@ SurvivalEstimator = Literal["cox", "rsf"]
 class _SurvivalModel(Protocol):
     """Protocol satisfied by every survival wrapper."""
 
-    def fit(self, X: pd.DataFrame, durations: np.ndarray, events: np.ndarray) -> "_SurvivalModel":
+    def fit(self, X: pd.DataFrame, durations: np.ndarray, events: np.ndarray) -> _SurvivalModel:
         """Fit the model in place and return self."""
         ...
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Mapping
 
 import numpy as np
 import pandas as pd
@@ -50,9 +50,7 @@ def _ordered_frame(uplift: np.ndarray, treatment: np.ndarray, outcome: np.ndarra
     )
 
 
-def qini_curve(
-    uplift: np.ndarray, treatment: np.ndarray, outcome: np.ndarray
-) -> pd.DataFrame:
+def qini_curve(uplift: np.ndarray, treatment: np.ndarray, outcome: np.ndarray) -> pd.DataFrame:
     """Build the Qini curve in cumulative form.
 
     :param uplift: Per-row uplift score.
@@ -70,15 +68,13 @@ def qini_curve(
     if n_treated_total == 0:
         df["qini"] = np.nan
         return df
-    df["qini"] = (
-        df["cum_treated_outcomes"] - df["cum_control_outcomes"] * df["cum_treated_n"] / np.maximum(df["cum_control_n"], 1)
-    )
+    df["qini"] = df["cum_treated_outcomes"] - df["cum_control_outcomes"] * df[
+        "cum_treated_n"
+    ] / np.maximum(df["cum_control_n"], 1)
     return df
 
 
-def qini_coefficient(
-    uplift: np.ndarray, treatment: np.ndarray, outcome: np.ndarray
-) -> float:
+def qini_coefficient(uplift: np.ndarray, treatment: np.ndarray, outcome: np.ndarray) -> float:
     """Return the Qini coefficient against the random-targeting baseline.
 
     :param uplift: Per-row uplift score.
@@ -96,9 +92,7 @@ def qini_coefficient(
     return (actual_area - random_area) / float(max(n * n, 1))
 
 
-def auuc(
-    uplift: np.ndarray, treatment: np.ndarray, outcome: np.ndarray
-) -> float:
+def auuc(uplift: np.ndarray, treatment: np.ndarray, outcome: np.ndarray) -> float:
     """Compute the area under the uplift curve.
 
     :param uplift: Per-row uplift score.

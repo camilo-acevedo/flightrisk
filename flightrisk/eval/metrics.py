@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Mapping
 
 import numpy as np
 import pandas as pd
@@ -73,9 +73,7 @@ def expected_calibration_error(
     return float(ece)
 
 
-def lift_at_decile(
-    y_true: np.ndarray, y_prob: np.ndarray, *, decile: int = 1
-) -> float:
+def lift_at_decile(y_true: np.ndarray, y_prob: np.ndarray, *, decile: int = 1) -> float:
     """Compute the lift in the top ``decile`` (1 = top 10%) versus base rate.
 
     :param y_true: Binary ground truth.
@@ -117,9 +115,7 @@ def risk_metrics(
     )
 
 
-def calibration_table(
-    y_true: np.ndarray, y_prob: np.ndarray, *, n_bins: int = 20
-) -> pd.DataFrame:
+def calibration_table(y_true: np.ndarray, y_prob: np.ndarray, *, n_bins: int = 20) -> pd.DataFrame:
     """Return a per-bin calibration table for plotting reliability diagrams.
 
     :param y_true: Binary ground truth.

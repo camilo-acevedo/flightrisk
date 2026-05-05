@@ -25,7 +25,7 @@ UpliftEstimator = Literal["t_learner", "x_learner", "dr_learner", "causal_forest
 class _UpliftModel(Protocol):
     """Protocol shared by every uplift wrapper."""
 
-    def fit(self, X: pd.DataFrame, treatment: np.ndarray, outcome: np.ndarray) -> "_UpliftModel":
+    def fit(self, X: pd.DataFrame, treatment: np.ndarray, outcome: np.ndarray) -> _UpliftModel:
         """Fit the uplift model."""
         ...
 
@@ -96,7 +96,11 @@ def train_uplift_model(
     treatment_arr = np.asarray(treatment).astype(int).ravel()
     outcome_arr = np.asarray(outcome).astype(int).ravel()
 
-    X_train, t_train, y_train = X_full.iloc[train_idx], treatment_arr[train_idx], outcome_arr[train_idx]
+    X_train, t_train, y_train = (
+        X_full.iloc[train_idx],
+        treatment_arr[train_idx],
+        outcome_arr[train_idx],
+    )
     X_test, t_test, y_test = X_full.iloc[test_idx], treatment_arr[test_idx], outcome_arr[test_idx]
 
     _log.info(

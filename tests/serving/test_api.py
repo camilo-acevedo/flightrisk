@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import ClassVar
 
 import joblib
 import numpy as np
@@ -25,21 +26,21 @@ def _reset_paths_and_registry(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 
 
 class _StubRiskModel:
-    feature_names = ["f0", "f1"]
+    feature_names: ClassVar[list[str]] = ["f0", "f1"]
 
     def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
         return np.clip(0.5 + 0.1 * X["f0"].fillna(0).values - 0.05 * X["f1"].fillna(0).values, 0, 1)
 
 
 class _StubUpliftModel:
-    feature_names = ["f0", "f1"]
+    feature_names: ClassVar[list[str]] = ["f0", "f1"]
 
     def predict_uplift(self, X: pd.DataFrame) -> np.ndarray:
         return 0.05 * X["f0"].fillna(0).values
 
 
 class _StubSurvivalModel:
-    feature_names = ["f0", "f1"]
+    feature_names: ClassVar[list[str]] = ["f0", "f1"]
 
     def hazard_at_horizon(self, X: pd.DataFrame, *, horizon_days: int) -> np.ndarray:
         scale = horizon_days / 90.0

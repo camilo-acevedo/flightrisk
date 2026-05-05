@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Mapping
 
 import numpy as np
 from sksurv.metrics import (
@@ -63,17 +63,13 @@ def survival_metrics(
     test_struct = to_structured_array(test_durations, test_events)
 
     c_index = float(
-        concordance_index_censored(
-            test_struct["event"], test_struct["time"], risk_scores
-        )[0]
+        concordance_index_censored(test_struct["event"], test_struct["time"], risk_scores)[0]
     )
     auc_per_horizon, _ = cumulative_dynamic_auc(
         train_struct, test_struct, risk_scores, times=horizons
     )
     brier = float(
-        integrated_brier_score(
-            train_struct, test_struct, survival_at_horizons, times=horizons
-        )
+        integrated_brier_score(train_struct, test_struct, survival_at_horizons, times=horizons)
     )
     return SurvivalMetrics(
         c_index=c_index,

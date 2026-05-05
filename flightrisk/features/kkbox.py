@@ -11,7 +11,6 @@ from flightrisk.features.time_helpers import (
     yyyymmdd_to_datetime,
 )
 
-
 _LISTEN_PROPORTION_COLS = ("num_25", "num_50", "num_75", "num_985", "num_100")
 
 
@@ -78,15 +77,15 @@ def transaction_features(
             "cancel_share": grouped["is_cancel"].mean().astype("float64"),
             "n_payment_methods": grouped["payment_method_id"].nunique().astype("Int64"),
             "days_since_last_txn": days_since(grouped["txn_date"].max(), cutoff).astype("float64"),
-            "days_until_expire": -days_since(grouped["expire_date"].max(), cutoff).astype("float64"),
+            "days_until_expire": -days_since(grouped["expire_date"].max(), cutoff).astype(
+                "float64"
+            ),
         }
     )
     if include_payment_dynamics:
         out["charge_delta_mean"] = grouped["charge_delta"].mean().astype("float64")
         out["charge_delta_max"] = grouped["charge_delta"].max().astype("float64")
-        out["refund_count"] = (
-            (df["charge_delta"] > 0).groupby(df["msno"]).sum().astype("Int64")
-        )
+        out["refund_count"] = (df["charge_delta"] > 0).groupby(df["msno"]).sum().astype("Int64")
     out = out.reset_index().rename(columns={"index": "msno"})
     return out
 
@@ -116,14 +115,15 @@ def _window_aggregate(
     chunk_with_total = chunk.assign(_total=chunk[list(_LISTEN_PROPORTION_COLS)].sum(axis=1))
     safe_total = chunk_with_total.groupby("msno")["_total"].sum()
     full_plays = grouped["num_100"].sum()
-    out[f"completion_ratio_{window_days}d"] = (
-        full_plays / safe_total.replace(0, np.nan)
-    ).astype("float64")
+    out[f"completion_ratio_{window_days}d"] = (full_plays / safe_total.replace(0, np.nan)).astype(
+        "float64"
+    )
 
     if include_session_stats:
         out[f"total_secs_{window_days}d"] = grouped["total_secs"].sum().astype("float64")
         out[f"avg_secs_per_active_day_{window_days}d"] = (
-            out[f"total_secs_{window_days}d"] / out[f"active_days_{window_days}d"].replace(0, np.nan)
+            out[f"total_secs_{window_days}d"]
+            / out[f"active_days_{window_days}d"].replace(0, np.nan)
         ).astype("float64")
     return out.reset_index().rename(columns={"index": "msno"})
 
@@ -158,7 +158,11 @@ def listening_features(
         )
         out = out.merge(piece, on="msno", how="left")
 
-    count_cols = [c for c in out.columns if c.startswith(("plays_", "unique_songs_", "active_days_", "total_secs_"))]
+    count_cols = [
+        c
+        for c in out.columns
+        if c.startswith(("plays_", "unique_songs_", "active_days_", "total_secs_"))
+    ]
     out[count_cols] = out[count_cols].fillna(0)
 
     last_login = df.groupby("msno", sort=False)["log_date"].max()

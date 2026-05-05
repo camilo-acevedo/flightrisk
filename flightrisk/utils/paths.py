@@ -27,7 +27,7 @@ class ProjectPaths:
     reports: Path
     configs: Path
 
-    def ensure(self) -> "ProjectPaths":
+    def ensure(self) -> ProjectPaths:
         """Create every directory that does not yet exist.
 
         :returns: The same instance, for fluent chaining.
@@ -52,10 +52,7 @@ def get_paths() -> ProjectPaths:
     :returns: A frozen :class:`ProjectPaths` instance.
     """
     env_root = os.environ.get("FLIGHTRISK_ROOT")
-    if env_root:
-        root = Path(env_root).resolve()
-    else:
-        root = Path(__file__).resolve().parents[2]
+    root = Path(env_root).resolve() if env_root else Path(__file__).resolve().parents[2]
 
     return ProjectPaths(
         root=root,

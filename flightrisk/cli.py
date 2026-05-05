@@ -176,9 +176,7 @@ def train_risk(
         pd.to_datetime(features["msno"].astype(str), errors="coerce").fillna(cutoff)
     )
     if pseudo_dates.is_monotonic_increasing is False:
-        pseudo_dates = pd.Series(
-            pd.date_range(end=cutoff, periods=len(features), freq="D")
-        )
+        pseudo_dates = pd.Series(pd.date_range(end=cutoff, periods=len(features), freq="D"))
 
     split = temporal_split(
         pseudo_dates,
@@ -266,7 +264,7 @@ def train_survival(estimator: str, horizon_days: int, train_frac: float, seed: i
 
     aligned = features.merge(labels, on="msno", how="inner")
     feat_cols = [c for c in features.columns if c != "msno"]
-    feature_frame = aligned[["msno"] + feat_cols]
+    feature_frame = aligned[["msno", *feat_cols]]
     durations = aligned["duration_days"].values
     events = aligned["event_observed"].values
 
@@ -304,7 +302,9 @@ def train_survival(estimator: str, horizon_days: int, train_frac: float, seed: i
         out_dir = paths.reports / "survival" / run.info.run_id
         out_dir.mkdir(parents=True, exist_ok=True)
         save_survival_curve_plot(
-            result.survival_at_horizons, result.horizons_days, output=out_dir / "survival_curves.png"
+            result.survival_at_horizons,
+            result.horizons_days,
+            output=out_dir / "survival_curves.png",
         )
         joblib.dump(result.model, out_dir / "model.joblib")
         np.save(out_dir / "survival_at_horizons.npy", result.survival_at_horizons)
