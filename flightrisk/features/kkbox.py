@@ -185,7 +185,7 @@ def derived_features(frame: pd.DataFrame) -> pd.DataFrame:
     * recent-vs-lifetime engagement ratios
     * spend efficiency (``actual / list``) and a ``charge_drop`` flag
     * recency band indicators (``never_logged_in``, ``inactive_30d``)
-    * tenure × auto-renew interaction (loyalty proxy)
+    * tenure x auto-renew interaction (loyalty proxy)
 
     :param frame: A frame produced by :func:`build_kkbox_feature_matrix`.
     :returns: A copy of ``frame`` with extra columns appended.

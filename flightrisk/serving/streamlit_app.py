@@ -454,7 +454,7 @@ def _render_uplift_tab() -> None:
         _apply_layout_template(fig_dec)
         fig_dec.update_layout(
             xaxis=dict(title="Decile (1 = best)", tickmode="linear"),
-            yaxis_title="Treated − control outcome rate",
+            yaxis_title="Treated minus control outcome rate",
             coloraxis_showscale=False,
             height=380,
         )
