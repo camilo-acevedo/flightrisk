@@ -312,10 +312,73 @@ def train_survival(estimator: str, horizon_days: int, train_frac: float, seed: i
         _log.info("survival artifacts saved to %s", out_dir)
 
 
-@train_group.command("uplift")
-def train_uplift() -> None:
-    """Train Track C (uplift). Lands in step 5."""
-    _log.info("train uplift is not yet implemented; coming in step 5.")
+@train_group.command("uplift", help="Train Track C (uplift) on the Orange Belgium RCT.")
+@click.option(
+    "--estimator",
+    type=click.Choice(["t_learner", "x_learner", "dr_learner", "causal_forest"]),
+    default="t_learner",
+    show_default=True,
+)
+@click.option("--n-splits", type=int, default=5, show_default=True)
+@click.option("--seed", type=int, default=1337, show_default=True)
+def train_uplift(estimator: str, n_splits: int, seed: int) -> None:
+    """Train Track C and log artifacts to MLflow.
+
+    :param estimator: One of the four supported uplift estimators.
+    :param n_splits: Number of stratified CV folds; the first fold becomes
+        the held-out test slice.
+    :param seed: Reproducibility seed.
+    """
+    import joblib
+    import mlflow
+    import pandas as pd
+
+    from flightrisk.data.splits import stratified_rct_folds
+    from flightrisk.models.uplift.trainer import save_qini_plot, train_uplift_model
+    from flightrisk.utils import seed_everything
+    from flightrisk.utils.mlflow_helpers import configure_mlflow, start_run
+    from flightrisk.utils.paths import get_paths
+
+    seed_everything(seed)
+    paths = get_paths()
+    base = paths.data_features / "orange"
+    features = pd.read_parquet(base / "features.parquet")
+    labels = pd.read_parquet(base / "labels.parquet")
+    treatment = labels["treatment"]
+    outcome = labels["outcome"]
+
+    folds = stratified_rct_folds(treatment, outcome, n_splits=n_splits, seed=seed)
+    train_idx, test_idx = folds[0]
+
+    configure_mlflow()
+    with start_run(run_name=f"uplift-{estimator}") as run:
+        mlflow.log_params(
+            {
+                "estimator": estimator,
+                "n_splits": n_splits,
+                "seed": seed,
+                "n_features": features.shape[1],
+                "n_samples": len(features),
+                "treated_share": float(treatment.mean()),
+            }
+        )
+        result = train_uplift_model(
+            features,
+            treatment,
+            outcome,
+            train_idx=train_idx,
+            test_idx=test_idx,
+            estimator=estimator,
+        )
+        mlflow.log_metrics(dict(result.metrics.as_dict()))
+
+        out_dir = paths.reports / "uplift" / run.info.run_id
+        out_dir.mkdir(parents=True, exist_ok=True)
+        save_qini_plot(result.qini_curve, output=out_dir / "qini.png")
+        result.qini_curve.to_csv(out_dir / "qini_curve.csv", index=False)
+        joblib.dump(result.model, out_dir / "model.joblib")
+        mlflow.log_artifacts(str(out_dir))
+        _log.info("uplift artifacts saved to %s", out_dir)
 
 
 @main.command("simulate", help="Run the campaign ROI simulator.")
