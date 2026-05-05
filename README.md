@@ -403,6 +403,18 @@ ruff format flightrisk tests
 ruff check --fix flightrisk tests
 ```
 
+### Pre-commit hooks
+
+[`.pre-commit-config.yaml`](.pre-commit-config.yaml) wires the same lint/format checks the CI workflow runs, plus YAML/TOML validation, merge-conflict detection, line-ending normalisation, large-file rejection, private-key detection, and notebook output stripping (`nbstripout`). After a fresh clone:
+
+```powershell
+pip install pre-commit
+pre-commit install
+pre-commit run --all-files   # one-time bulk pass
+```
+
+After `pre-commit install`, every `git commit` re-runs the hooks against the staged files only — the same checks GitHub Actions runs, so PR feedback never surprises you.
+
 ### Testing strategy
 
 | Module | What is tested |
